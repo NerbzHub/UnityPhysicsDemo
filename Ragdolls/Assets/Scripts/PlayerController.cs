@@ -4,12 +4,17 @@ using UnityEngine;
 
 public class PlayerController : MonoBehaviour
 {
-    public float m_Force;
 
+    public GameObject cameraHolder;
     public GameObject m_Projectile;
     public Rigidbody m_rigidBody;
     public Collider m_headCollider;
     public Collider m_groundCollider;
+    public Cloth targetCloth;
+
+    public GameObject[] ProjectileArray;
+
+    private int bulletCounter = 0;
 
     private bool m_canStand = true;
     private bool m_grounded = false;
@@ -25,12 +30,16 @@ public class PlayerController : MonoBehaviour
     public float maximumY = 60F;
     float rotationY = 0F;
 
+    public float moveSpeed;
+    public float maxSpeed = 12.0f;
+
+
     // Use this for initialization
     void Start()
     {
         if (gameObject.GetComponent<Rigidbody>())
             gameObject.GetComponent<Rigidbody>().freezeRotation = true;
-      
+
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
     }
@@ -61,6 +70,20 @@ public class PlayerController : MonoBehaviour
             transform.localEulerAngles = new Vector3(-rotationY, transform.localEulerAngles.y, 0);
         }
 
+        if (bulletCounter > 6)
+        {
+            for (int i = 1; i < bulletCounter; i++)
+            {
+                targetCloth.capsuleColliders[i] = null;
+            }
+
+            bulletCounter = 1;
+        }
+
+        if (Input.GetKey(KeyCode.R))
+        {
+            Invoke("Reload", 1.5f);
+        }
 
         //-------------------------------------------------------------------------------------------
         //                                          Mouse
@@ -85,9 +108,7 @@ public class PlayerController : MonoBehaviour
 
             /// if layer mask is cloth layer then fire projectile.
 
-
-
-
+            // Shoot
 
             if (Physics.Raycast(raycast, out hitInfo, 100.0f, layerMaskRagdoll.value))
             {
@@ -108,35 +129,46 @@ public class PlayerController : MonoBehaviour
                 newVec3 += transform.forward;
                 //newTrans.position = newVec3;
                 //do hit stuff for cloth.
-                GameObject go =  Instantiate(m_Projectile, newVec3, transform.rotation);
-                go.GetComponent<Rigidbody>().AddForce(transform.forward * 10, ForceMode.Impulse);
+                //GameObject go = Instantiate(m_Projectile, newVec3, transform.rotation);
+                //
+                //targetCloth.capsuleColliders[1] = go.GetComponent<CapsuleCollider>();
+                //++bulletCounter;
+                //go.GetComponent<Rigidbody>().AddForce(transform.forward * 10, ForceMode.Impulse);
+
+                ProjectileArray[bulletCounter].transform.position = transform.position + transform.forward;
+                ProjectileArray[bulletCounter].GetComponent<Rigidbody>().isKinematic = true;
+                ProjectileArray[bulletCounter].GetComponent<Rigidbody>().isKinematic = false;
+                ProjectileArray[bulletCounter].GetComponent<Rigidbody>().AddForce(transform.forward * 100, ForceMode.Impulse);
+                ++bulletCounter;
             }
 
         }
         //-------------------------------------------------------------------------------------------
 
         //-------------------------------------------------------------------------------------------
-        //                                      Keyboard Input
+        //                                   Keyboard Input Movement
         //
         if (Input.GetKey(KeyCode.W))
         {
-            m_rigidBody.AddForce(transform.forward, ForceMode.Impulse);
+            m_rigidBody.AddForce(new Vector3(transform.forward.x * moveSpeed, 0, transform.forward.z * moveSpeed), ForceMode.Acceleration);
+
         }
 
         if (Input.GetKey(KeyCode.S))
         {
-            m_rigidBody.AddForce(-transform.forward, ForceMode.Impulse);
+            m_rigidBody.AddForce(new Vector3(-transform.forward.x * moveSpeed, 0, -transform.forward.z * moveSpeed), ForceMode.Acceleration);
         }
 
         if (Input.GetKey(KeyCode.D))
         {
-            m_rigidBody.AddForce(transform.right, ForceMode.Impulse);
+            m_rigidBody.AddForce(new Vector3(transform.right.x * moveSpeed, 0, transform.right.z * moveSpeed), ForceMode.Acceleration);
         }
 
         if (Input.GetKey(KeyCode.A))
         {
-            m_rigidBody.AddForce(-transform.right, ForceMode.Impulse);
+            m_rigidBody.AddForce(new Vector3(-transform.right.x * moveSpeed, 0, -transform.right.z * moveSpeed), ForceMode.Acceleration);
         }
+
         //-------------------------------------------------------------------------------------------
         //                                          Jump
         //
@@ -151,6 +183,11 @@ public class PlayerController : MonoBehaviour
             bOnce = false;
             Invoke("TimedbOnce", 0.5f);
         }
+
+        if (!m_canStand)
+        {
+
+        }
         //-------------------------------------------------------------------------------------------
         //                                         Crouch
         //
@@ -161,8 +198,8 @@ public class PlayerController : MonoBehaviour
 
         if (Input.GetKey(KeyCode.LeftControl))
         {
-            if(m_canStand)
-            m_headCollider.isTrigger = false;
+            if (m_canStand)
+                m_headCollider.isTrigger = false;
         }
         //-------------------------------------------------------------------------------------------
 
@@ -175,7 +212,7 @@ public class PlayerController : MonoBehaviour
 
         // grounded trigger underneath the normal collider and if other.tag is ground then grounded.
 
-        
+
         // add list for any rigidbodies.
         // if 
     }
@@ -184,7 +221,7 @@ public class PlayerController : MonoBehaviour
     {
         m_canStand = false;
 
-        if(other.tag == "Ground")
+        if (other.tag == "Ground")
         {
             m_grounded = true;
         }
@@ -204,4 +241,19 @@ public class PlayerController : MonoBehaviour
     {
         bOnce = true;
     }
+
+    private void Reload()
+    {
+        bulletCounter = 0;
+    }
+
 }
+
+
+
+/// 15 shots in the array.
+/// 6 bullets in the gun.
+/// bullets dissappear after 2 seconds.
+/// reload time makes it so that the array can never stuff up.
+/// THUS ALLOWING FOR THE ARRAY TO SEEM LIKE ITS NOT SHIT.
+
