@@ -7,14 +7,17 @@ public class PlayerController : MonoBehaviour
 
     public GameObject cameraHolder;
     public GameObject m_Projectile;
+    
     public Rigidbody m_rigidBody;
     public Collider m_headCollider;
     public Collider m_groundCollider;
     public Cloth targetCloth;
 
     public GameObject[] ProjectileArray;
+    public bool reloading = false;
 
-    private int bulletCounter = 0;
+    [HideInInspector]
+    public int bulletCounter = 0;
 
     private bool m_canStand = true;
     private bool m_grounded = false;
@@ -33,13 +36,17 @@ public class PlayerController : MonoBehaviour
     public float moveSpeed;
     public float maxSpeed = 12.0f;
 
+    //private WeaponStates weaponStates;
+    private WeaponStates.enumWeaponStates currentWeapon;
 
     // Use this for initialization
     void Start()
     {
         if (gameObject.GetComponent<Rigidbody>())
             gameObject.GetComponent<Rigidbody>().freezeRotation = true;
-
+        //weaponStates = gameObject.GetComponent<WeaponStates>();
+        //currentWeapon = WeaponStates.enumWeaponStates.Revolver;
+        gameObject.GetComponent<WeaponStates>().currentState = WeaponStates.enumWeaponStates.Revolver;
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
     }
@@ -80,9 +87,11 @@ public class PlayerController : MonoBehaviour
             bulletCounter = 1;
         }
 
-        if (Input.GetKey(KeyCode.R))
+        if (Input.GetKey(KeyCode.R) && !reloading)
         {
+            reloading = true;
             Invoke("Reload", 1.5f);
+
         }
 
         //-------------------------------------------------------------------------------------------
@@ -95,6 +104,21 @@ public class PlayerController : MonoBehaviour
             Ray raycast = Camera.main.ScreenPointToRay(new Vector3(Camera.main.scaledPixelWidth * 0.5f, Camera.main.scaledPixelHeight * 0.5f, 0));
 
             RaycastHit hitInfo;
+
+            switch (gameObject.GetComponent<WeaponStates>().currentState)
+            {
+                case WeaponStates.enumWeaponStates.Revolver:
+                    // all of the mouse stuff other than ragdolls.
+                    break;
+                case WeaponStates.enumWeaponStates.FluidGun:
+                    // Fluid sim from gun
+                    break;
+                case WeaponStates.enumWeaponStates.RayGun:
+                    // visible ray cast
+                    break;
+                default:
+                    break;
+            }
 
             ///screnwidth.width * 0.5
             ///screenwidth.height * 0.5
@@ -135,7 +159,9 @@ public class PlayerController : MonoBehaviour
                 //++bulletCounter;
                 //go.GetComponent<Rigidbody>().AddForce(transform.forward * 10, ForceMode.Impulse);
 
-                ProjectileArray[bulletCounter].transform.position = transform.position + transform.forward;
+                ProjectileArray[bulletCounter].transform.position =
+                gameObject.GetComponent<WeaponStates>().m_GOWeaponPos.transform.position + gameObject.GetComponent<WeaponStates>().m_GOWeaponPos.transform.forward;
+                //ProjectileArray[bulletCounter].transform.position = transform.position + m_ProjectileSpawnGO.transform.position;
                 ProjectileArray[bulletCounter].GetComponent<Rigidbody>().isKinematic = true;
                 ProjectileArray[bulletCounter].GetComponent<Rigidbody>().isKinematic = false;
                 ProjectileArray[bulletCounter].GetComponent<Rigidbody>().AddForce(transform.forward * 100, ForceMode.Impulse);
@@ -184,9 +210,38 @@ public class PlayerController : MonoBehaviour
             Invoke("TimedbOnce", 0.5f);
         }
 
-        if (!m_canStand)
+        //toggle weapon
+        // todo: it is staying on fluid gun for some reason.
+        if (Input.GetKeyDown(KeyCode.U))
         {
+            switch (gameObject.GetComponent<WeaponStates>().currentState)
+            {
+                case WeaponStates.enumWeaponStates.Revolver:
+                    gameObject.GetComponent<WeaponStates>().setState(WeaponStates.enumWeaponStates.FluidGun);
+                    // revolver model visible
+                    break;
 
+                case WeaponStates.enumWeaponStates.FluidGun:
+                    //fluidgun
+                    gameObject.GetComponent<WeaponStates>().setState(WeaponStates.enumWeaponStates.RayGun);
+                    break;
+
+                case WeaponStates.enumWeaponStates.RayGun:
+                    //raygun
+                    gameObject.GetComponent<WeaponStates>().setState(WeaponStates.enumWeaponStates.Revolver);
+                    break;
+                default:
+                    break;
+            }
+
+            //if(currentWeapon == WeaponStates.enumWeaponStates.Revolver)
+            //    weaponStates.setState(WeaponStates.enumWeaponStates.FluidGun);
+
+            //else if (currentWeapon == WeaponStates.enumWeaponStates.FluidGun)
+            //    weaponStates.setState(WeaponStates.enumWeaponStates.RayGun);
+
+            //else if (currentWeapon == WeaponStates.enumWeaponStates.RayGun)
+            //    weaponStates.setState(WeaponStates.enumWeaponStates.Revolver);
         }
         //-------------------------------------------------------------------------------------------
         //                                         Crouch
@@ -245,6 +300,7 @@ public class PlayerController : MonoBehaviour
     private void Reload()
     {
         bulletCounter = 0;
+        reloading = false;
     }
 
 }
@@ -257,3 +313,5 @@ public class PlayerController : MonoBehaviour
 /// reload time makes it so that the array can never stuff up.
 /// THUS ALLOWING FOR THE ARRAY TO SEEM LIKE ITS NOT SHIT.
 
+/// use the scroll wheel to swap between 
+/// fluid gun, normal gun or laser gun.(Somehow draw the ray)

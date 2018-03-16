@@ -16,7 +16,7 @@ public class ParticleGenerator : MonoBehaviour {
     public LiquidParticle.LiquidStates particlesState = LiquidParticle.LiquidStates.Water;
 
     // How much time until the next particle spawns
-    private const float SPAWN_INTERVAL=0.1f;
+    private const float SPAWN_INTERVAL=0.025f;
 
     //Container to keep all the particles in a single object within the unity heirarchy
     private Transform m_sceneParticleHolder;

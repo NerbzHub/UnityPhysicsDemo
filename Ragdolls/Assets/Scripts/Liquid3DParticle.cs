@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using System.Collections;
 
 /// LiquidParticle. 
@@ -6,8 +6,7 @@ using System.Collections;
 /// Particles will need to scale in size over time with scaling effecting overall velocity of the sprite.
 /// Code has been provided to get you started. You will need to fill in the missing information from each function.
 
-[RequireComponent(typeof(Rigidbody2D))]
-public class LiquidParticle : MonoBehaviour
+public class Liquid3DParticle : MonoBehaviour
 {
 
     public enum LiquidStates
@@ -28,12 +27,12 @@ public class LiquidParticle : MonoBehaviour
     const float WATER_GRAVITYSCALE = 1.0f;
     const float LAVA_GRAVITYSCALE = 0.3f;
 
-    private Rigidbody2D _rigidbody = null;
+    private Rigidbody _rigidbody = null;
 
 
     void Awake()
     {
-        _rigidbody = GetComponent<Rigidbody2D>();
+        _rigidbody = GetComponent<Rigidbody>();
 
         startTime = 0.0f;
         SetState(currentState);
@@ -91,6 +90,7 @@ public class LiquidParticle : MonoBehaviour
         Vector3 movementScale = Vector3.one;
         movementScale.x += _rigidbody.velocity.x / 30.0f;
         movementScale.y += _rigidbody.velocity.y / 30.0f;
+        movementScale.z += _rigidbody.velocity.z / 30.0f;
         transform.localScale = movementScale;
     }
 
@@ -101,7 +101,7 @@ public class LiquidParticle : MonoBehaviour
     void ScaleDown()
     {
         float scaleValue = 1.0f - ((Time.time - startTime) / particleLifeTime);
-        Vector2 particleScale = Vector2.one;
+        Vector3 particleScale = Vector3.one;
         if (scaleValue <= 0)
         {
             Destroy(gameObject);
@@ -111,6 +111,7 @@ public class LiquidParticle : MonoBehaviour
         {
             particleScale.x = scaleValue;
             particleScale.y = scaleValue;
+            particleScale.z = scaleValue;
             transform.localScale = particleScale;
         }
     }
@@ -129,7 +130,7 @@ public class LiquidParticle : MonoBehaviour
     /// This is where we would handle collisions between particles and call functions like our setState to change
     /// partcle types. Or we could just flat out destroy them etc..
     /// a_otherParticle: The collision with another particle. Obviously not limited to particles so do a check in the method 
-    void OnCollisionEnter2D(Collision2D a_otherParticle)
+    void OnCollisionEnter(Collision a_otherParticle)
     {
 
 
