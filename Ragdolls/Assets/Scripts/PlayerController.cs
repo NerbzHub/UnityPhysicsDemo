@@ -6,8 +6,11 @@ public class PlayerController : MonoBehaviour
 {
 
     public GameObject cameraHolder;
+    public GameObject crouchCameraHolder;
+    public GameObject standCameraHolder;
     public GameObject m_Projectile;
-    
+
+    public GameObject CrouchText;
     public Rigidbody m_rigidBody;
     public Collider m_headCollider;
     public Collider m_groundCollider;
@@ -21,6 +24,7 @@ public class PlayerController : MonoBehaviour
 
     private bool m_canStand = true;
     private bool m_grounded = false;
+    private bool m_jumping = false;
     private bool bOnce = true;
 
     public enum RotationAxes { MouseXAndY = 0, MouseX = 1, MouseY = 2 }
@@ -177,7 +181,6 @@ public class PlayerController : MonoBehaviour
         if (Input.GetKey(KeyCode.W))
         {
             m_rigidBody.AddForce(new Vector3(transform.forward.x * moveSpeed, 0, transform.forward.z * moveSpeed), ForceMode.Acceleration);
-
         }
 
         if (Input.GetKey(KeyCode.S))
@@ -195,23 +198,53 @@ public class PlayerController : MonoBehaviour
             m_rigidBody.AddForce(new Vector3(-transform.right.x * moveSpeed, 0, -transform.right.z * moveSpeed), ForceMode.Acceleration);
         }
 
+        // Movement Cap
+        if (m_rigidBody.velocity.magnitude > maxSpeed && m_grounded || m_rigidBody.velocity.magnitude > maxSpeed && m_jumping)
+        {
+            float f = m_rigidBody.velocity.magnitude - maxSpeed;
+            m_rigidBody.AddForce(m_rigidBody.velocity * -f);
+        }
+
         //-------------------------------------------------------------------------------------------
         //                                          Jump
         //
-        if ((Input.GetKeyDown(KeyCode.Space) && m_grounded))
+        if ((Input.GetKeyDown(KeyCode.Space) && m_grounded && !m_jumping))
         {
-            m_rigidBody.AddForce(Vector3.up * 10, ForceMode.Impulse);
+            m_rigidBody.AddForce(Vector3.up * 20, ForceMode.Impulse);
+            m_jumping = true;
+            Invoke("Jumped", 2.0f);
         }
         //-------------------------------------------------------------------------------------------
-        if ((Input.GetAxis("Mouse ScrollWheel") > 0f) && m_grounded && bOnce)
+        //if ((Input.GetAxis("Mouse ScrollWheel") > 0f) && m_grounded && bOnce)
+        if(Input.GetAxis("Mouse ScrollWheel") > 0f)
         {
-            m_rigidBody.AddForce(Vector3.up * 10, ForceMode.Impulse);
+            //m_rigidBody.AddForce(Vector3.up * 10, ForceMode.Impulse);
+
+            switch (gameObject.GetComponent<WeaponStates>().currentState)
+            {
+                case WeaponStates.enumWeaponStates.Revolver:
+                    gameObject.GetComponent<WeaponStates>().setState(WeaponStates.enumWeaponStates.FluidGun);
+                    // revolver model visible
+                    break;
+
+                case WeaponStates.enumWeaponStates.FluidGun:
+                    //fluidgun
+                    gameObject.GetComponent<WeaponStates>().setState(WeaponStates.enumWeaponStates.RayGun);
+                    break;
+
+                case WeaponStates.enumWeaponStates.RayGun:
+                    //raygun
+                    gameObject.GetComponent<WeaponStates>().setState(WeaponStates.enumWeaponStates.Revolver);
+                    break;
+                default:
+                    break;
+            }
             bOnce = false;
-            Invoke("TimedbOnce", 0.5f);
+            Invoke("TimedbOnce", 0.0f);
         }
 
-        //toggle weapon
-        // todo: it is staying on fluid gun for some reason.
+        //-------------------------------------------------------------------------------------------
+        //                                      Toggle Weapon
         if (Input.GetKeyDown(KeyCode.U))
         {
             switch (gameObject.GetComponent<WeaponStates>().currentState)
@@ -233,43 +266,26 @@ public class PlayerController : MonoBehaviour
                 default:
                     break;
             }
-
-            //if(currentWeapon == WeaponStates.enumWeaponStates.Revolver)
-            //    weaponStates.setState(WeaponStates.enumWeaponStates.FluidGun);
-
-            //else if (currentWeapon == WeaponStates.enumWeaponStates.FluidGun)
-            //    weaponStates.setState(WeaponStates.enumWeaponStates.RayGun);
-
-            //else if (currentWeapon == WeaponStates.enumWeaponStates.RayGun)
-            //    weaponStates.setState(WeaponStates.enumWeaponStates.Revolver);
         }
+
         //-------------------------------------------------------------------------------------------
         //                                         Crouch
         //
         if (Input.GetKeyDown(KeyCode.LeftControl))
         {
             m_headCollider.isTrigger = true;
+            cameraHolder.transform.position = crouchCameraHolder.transform.position;
         }
 
-        if (Input.GetKey(KeyCode.LeftControl))
+        if (Input.GetKeyUp(KeyCode.LeftControl))
         {
             if (m_canStand)
+            {
+                cameraHolder.transform.position = standCameraHolder.transform.position; 
                 m_headCollider.isTrigger = false;
+            }
         }
         //-------------------------------------------------------------------------------------------
-
-
-
-        //if(m_canStand)
-        //{
-        //    m_headCollider.isTrigger = false;
-        //}
-
-        // grounded trigger underneath the normal collider and if other.tag is ground then grounded.
-
-
-        // add list for any rigidbodies.
-        // if 
     }
 
     private void OnTriggerEnter(Collider other)
@@ -280,6 +296,11 @@ public class PlayerController : MonoBehaviour
         {
             m_grounded = true;
         }
+
+        if (other.tag == "CrouchTip")
+        {
+            CrouchText.SetActive(true);
+        }
     }
 
     private void OnTriggerExit(Collider other)
@@ -289,6 +310,11 @@ public class PlayerController : MonoBehaviour
         if (other.tag == "Ground")
         {
             m_grounded = false;
+        }
+
+        if (other.tag == "CrouchTip")
+        {
+            CrouchText.SetActive(false);
         }
     }
 
@@ -303,15 +329,9 @@ public class PlayerController : MonoBehaviour
         reloading = false;
     }
 
+    private void Jumped()
+    {
+        m_jumping = false;
+    }
+
 }
-
-
-
-/// 15 shots in the array.
-/// 6 bullets in the gun.
-/// bullets dissappear after 2 seconds.
-/// reload time makes it so that the array can never stuff up.
-/// THUS ALLOWING FOR THE ARRAY TO SEEM LIKE ITS NOT SHIT.
-
-/// use the scroll wheel to swap between 
-/// fluid gun, normal gun or laser gun.(Somehow draw the ray)
